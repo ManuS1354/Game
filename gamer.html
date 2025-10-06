@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Beweeg de speler</title>
+<style>
+#gameArea { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #6b0909, #000); overflow: hidden; }
+body { margin:0; overflow:hidden; background:#222; }
+#player { position:absolute; width:20px; height:20px; background:rgb(81, 255, 0); left:280px; top:180px; }
+.enemy { position:absolute; width:40px; height:40px; background:red;}
+#score { position:fixed; top:10px; left:10px; font-size:20px; color:white; }
+#healthContainer { position: fixed; top: 10px; right: 10px; width: 200px; height: 20px; background: #400; border: 2px solid rgb(255, 2, 2); }
+#healthbar { width: 200px; height: 100%; background: #f00; }
+#gameOver { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); font-size:48px; color:red; display:none; text-align:center; }
+#staminaContainer{
+  position:fixed;
+  top:40px;
+  right:10px;
+  width:200px;
+  height:10px;
+  background:#333;
+  border:1px solid #666;
+}
+#staminaBar{
+  width:200px;
+  height:100%;
+  background:#0f0;
+}
+</style>
+</head>
+<body>
+
+<div id="gameArea">
+  <div id="player"></div>
+  <div class="enemy" style="left:300px;top:200px"></div>
+  <div id="score">Score: 0</div>
+  <div id="healthContainer"><div id="healthbar"></div></div>
+  <div id="gameOver">GAME OVER</div>
+  <div id="staminaContainer"><div id="staminaBar"></div></div>
+</div>
+
+<script>
+const player = document.getElementById('player');
+const enemies = document.querySelectorAll('.enemy');
+const healthbar = document.getElementById('healthbar');
+const gameOverDiv = document.getElementById('gameOver');
+const staminaBar = document.getElementById('staminaBar');
+
+let x = 280, y = 180, speed = 5;
+let maxHealth = 5, health = maxHealth;
+let lastHit = 0, hitCooldown = 500;
+
+let stamina = 100;
+const staminaDrain = 1;
+const staminaRecover = 0.1;
+
+const keys = {}; // registreer ingedrukte toetsen
+
+document.addEventListener('keydown', e => { keys[e.key] = true; });
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// Enemy objecten
+const enemyObjects = [];
+enemies.forEach(enemy => {
+  enemyObjects.push({el: enemy, x: parseInt(enemy.style.left), y: parseInt(enemy.style.top), dx:2, dy:2});
+});
+
+// Botsing check
+function checkCollision(a,b){ return !(a.x+20<b.x || a.x>b.x+40 || a.y+20<b.y || a.y>b.y+40); }
+function updateHealthBar(){ healthbar.style.width = (health/maxHealth*200)+'px'; }
+
+function gameLoop(){
+  if(health <= 0){
+    gameOverDiv.style.display = 'block';
+    return;
+  }
+
+  // Bepaal snelheid met stamina
+  let s = speed;
+  if(keys['Shift'] && stamina > 0){
+    s = speed*2;
+    stamina -= staminaDrain;
+    if(stamina < 0) stamina = 0;
+  } else if(!keys['Shift'] && stamina < 100){
+    stamina += staminaRecover;
+    if(stamina > 100) stamina = 100;
+  }
+
+  // Beweging speler
+  if(keys['ArrowUp']) y -= s;
+  if(keys['ArrowDown']) y += s;
+  if(keys['ArrowLeft']) x -= s;
+  if(keys['ArrowRight']) x += s;
+
+  // Grenzen van scherm
+  x = Math.max(0, Math.min(window.innerWidth-20, x));
+  y = Math.max(0, Math.min(window.innerHeight-20, y));
+  player.style.left = x+'px';
+  player.style.top = y+'px';
+
+  // Enemy beweging en botsing
+  enemyObjects.forEach(enemy => {
+    enemy.x += enemy.dx;
+    enemy.y += enemy.dy;
+
+    if(enemy.x < 0 || enemy.x > window.innerWidth-40) enemy.dx *= -1;
+    if(enemy.y < 0 || enemy.y > window.innerHeight-40) enemy.dy *= -1;
+
+    enemy.el.style.left = enemy.x+'px';
+    enemy.el.style.top = enemy.y+'px';
+
+    if(checkCollision({x,y}, enemy) && Date.now()-lastHit > hitCooldown){
+      lastHit = Date.now();
+      health--;
+      if(health < 0) health = 0;
+      updateHealthBar();
+
+      if(health <= 0) return;
+
+      // push-back
+      if(x < enemy.x) x -= 20; else x += 20;
+      if(y < enemy.y) y -= 20; else y += 20;
+      player.style.left = x+'px';
+      player.style.top = y+'px';
+    }
+  });
+
+  // Update stamina bar
+  staminaBar.style.width = (stamina/100*200)+'px';
+
+  requestAnimationFrame(gameLoop);
+}
+
+updateHealthBar();
+gameLoop();
+</script>
+</body>
+</html>
