@@ -2,136 +2,175 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Beweeg de speler</title>
+<title>Advanced 2D Game</title>
 <style>
 #gameArea { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #6b0909, #000); overflow: hidden; }
 body { margin:0; overflow:hidden; background:#222; }
 #player { position:absolute; width:20px; height:20px; background:rgb(81, 255, 0); left:280px; top:180px; }
-.enemy { position:absolute; width:40px; height:40px; background:red;}
-#score { position:fixed; top:10px; left:10px; font-size:20px; color:white; }
-#healthContainer { position: fixed; top: 10px; right: 10px; width: 200px; height: 20px; background: #400; border: 2px solid rgb(255, 2, 2); }
-#healthbar { width: 200px; height: 100%; background: #f00; }
-#gameOver { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); font-size:48px; color:red; display:none; text-align:center; }
-#staminaContainer{
-  position:fixed;
-  top:40px;
-  right:10px;
-  width:200px;
-  height:10px;
-  background:#333;
-  border:1px solid #666;
-}
-#staminaBar{
-  width:200px;
-  height:100%;
-  background:#0f0;
-}
+.enemy { position:absolute; width:40px; height:40px; background:red; border-radius:5px;}
+.healthPack, .sprintPack, .coin { position:absolute; width:20px; height:20px; border-radius:50%; }
+.healthPack { background:#f00; }
+.sprintPack { background:#0ff; }
+.coin { background:gold; }
+#score, #healthContainer, #staminaContainer, #gameOver { position:fixed; font-size:20px; color:white; }
+#score { top:10px; left:10px; font-size:20px; }
+#healthContainer { top:10px; right:10px; width:200px; height:20px; background:#400; border:2px solid #f00; }
+#healthbar { width:200px; height:100%; background:#f00; }
+#staminaContainer { top:40px; right:10px; width:200px; height:10px; background:#333; border:1px solid #0f0; }
+#staminaBar { width:200px; height:100%; background:#0f0; }
+#gameOver { top:50%; left:50%; transform:translate(-50%, -50%); font-size:48px; color:red; display:none; text-align:center; }
 </style>
 </head>
 <body>
 
 <div id="gameArea">
   <div id="player"></div>
-  <div class="enemy" style="left:300px;top:200px"></div>
   <div id="score">Score: 0</div>
   <div id="healthContainer"><div id="healthbar"></div></div>
-  <div id="gameOver">GAME OVER</div>
   <div id="staminaContainer"><div id="staminaBar"></div></div>
+  <div id="gameOver">GAME OVER</div>
 </div>
 
 <script>
+const gameArea = document.getElementById('gameArea');
 const player = document.getElementById('player');
-const enemies = document.querySelectorAll('.enemy');
 const healthbar = document.getElementById('healthbar');
-const gameOverDiv = document.getElementById('gameOver');
 const staminaBar = document.getElementById('staminaBar');
+const gameOverDiv = document.getElementById('gameOver');
+const scoreDiv = document.getElementById('score');
 
-let x = 280, y = 180, speed = 5;
-let maxHealth = 5, health = maxHealth;
-let lastHit = 0, hitCooldown = 500;
+let x=280, y=180, speed=5;
+let maxHealth=5, health=maxHealth;
+let stamina=100;
+let lastHit=0, hitCooldown=500;
+let score=0;
 
-let stamina = 100;
-const staminaDrain = 1;
-const staminaRecover = 0.1;
+const keys = {};
+document.addEventListener('keydown', e=>keys[e.key]=true);
+document.addEventListener('keyup', e=>keys[e.key]=false);
 
-const keys = {}; // registreer ingedrukte toetsen
-
-document.addEventListener('keydown', e => { keys[e.key] = true; });
-document.addEventListener('keyup', e => { keys[e.key] = false; });
-
-// Enemy objecten
+// === Enemies ===
 const enemyObjects = [];
-enemies.forEach(enemy => {
-  enemyObjects.push({el: enemy, x: parseInt(enemy.style.left), y: parseInt(enemy.style.top), dx:2, dy:2});
-});
+const movementTypes = ['bounce','circle','zigzag','follow','jump'];
+for(let i=0;i<10;i++){
+  const enemyDiv = document.createElement('div');
+  enemyDiv.classList.add('enemy');
+  enemyDiv.style.left = Math.random()*(window.innerWidth-40)+'px';
+  enemyDiv.style.top = Math.random()*(window.innerHeight-40)+'px';
+  gameArea.appendChild(enemyDiv);
+  
+  enemyObjects.push({
+    el:enemyDiv,
+    x:parseInt(enemyDiv.style.left),
+    y:parseInt(enemyDiv.style.top),
+    dx: 2 + Math.random()*2,
+    dy: 2 + Math.random()*2,
+    type: movementTypes[Math.floor(Math.random()*movementTypes.length)],
+    angle: Math.random()*Math.PI*2,
+    jumpTimer: Math.random()*100
+  });
+}
 
-// Botsing check
-function checkCollision(a,b){ return !(a.x+20<b.x || a.x>b.x+40 || a.y+20<b.y || a.y>b.y+40); }
+// === Power-ups / Coins ===
+const items = [];
+function spawnItem(type){
+  const div = document.createElement('div');
+  div.classList.add(type);
+  div.style.left = Math.random()*(window.innerWidth-20)+'px';
+  div.style.top = Math.random()*(window.innerHeight-20)+'px';
+  gameArea.appendChild(div);
+  items.push({el:div, type:type});
+}
+
+// Spawn een paar items aan het begin
+for(let i=0;i<3;i++) spawnItem('coin');
+for(let i=0;i<1;i++) spawnItem('healthPack');
+for(let i=0;i<1;i++) spawnItem('sprintPack');
+
+// === Helpers ===
+function checkCollision(a,b){ return !(a.x+a.width < b.x || a.x>b.x+b.width || a.y+a.height<b.y || a.y>b.y+b.height); }
 function updateHealthBar(){ healthbar.style.width = (health/maxHealth*200)+'px'; }
+function updateStaminaBar(){ staminaBar.style.width = (stamina/100*200)+'px'; }
+function updateScore(){ scoreDiv.textContent = "Score: "+score; }
 
+// === Game Loop ===
 function gameLoop(){
-  if(health <= 0){
-    gameOverDiv.style.display = 'block';
-    return;
-  }
+  if(health<=0){ gameOverDiv.style.display='block'; return; }
 
-  // Bepaal snelheid met stamina
+  // Player movement
   let s = speed;
-  if(keys['Shift'] && stamina > 0){
-    s = speed*2;
-    stamina -= staminaDrain;
-    if(stamina < 0) stamina = 0;
-  } else if(!keys['Shift'] && stamina < 100){
-    stamina += staminaRecover;
-    if(stamina > 100) stamina = 100;
-  }
+  if(keys['Shift'] && stamina>0){ s = speed*2; stamina-=1; if(stamina<0) stamina=0;}
+  else if(!keys['Shift'] && stamina<100){ stamina+=0.1; if(stamina>100) stamina=100;}
 
-  // Beweging speler
-  if(keys['ArrowUp']) y -= s;
-  if(keys['ArrowDown']) y += s;
-  if(keys['ArrowLeft']) x -= s;
-  if(keys['ArrowRight']) x += s;
+  if(keys['ArrowUp']) y-=s;
+  if(keys['ArrowDown']) y+=s;
+  if(keys['ArrowLeft']) x-=s;
+  if(keys['ArrowRight']) x+=s;
 
-  // Grenzen van scherm
   x = Math.max(0, Math.min(window.innerWidth-20, x));
   y = Math.max(0, Math.min(window.innerHeight-20, y));
   player.style.left = x+'px';
   player.style.top = y+'px';
 
-  // Enemy beweging en botsing
-  enemyObjects.forEach(enemy => {
-    enemy.x += enemy.dx;
-    enemy.y += enemy.dy;
-
-    if(enemy.x < 0 || enemy.x > window.innerWidth-40) enemy.dx *= -1;
-    if(enemy.y < 0 || enemy.y > window.innerHeight-40) enemy.dy *= -1;
-
+  // Enemies movement
+  enemyObjects.forEach(enemy=>{
+    switch(enemy.type){
+      case 'bounce':
+        enemy.x += enemy.dx; enemy.y += enemy.dy;
+        if(enemy.x<0 || enemy.x>window.innerWidth-40) enemy.dx*=-1;
+        if(enemy.y<0 || enemy.y>window.innerHeight-40) enemy.dy*=-1;
+        break;
+      case 'circle':
+        enemy.angle+=0.05;
+        enemy.x += Math.cos(enemy.angle)*2;
+        enemy.y += Math.sin(enemy.angle)*2;
+        break;
+      case 'zigzag':
+        enemy.x += enemy.dx;
+        enemy.y += Math.sin(enemy.x/20)*10;
+        if(enemy.x<0 || enemy.x>window.innerWidth-40) enemy.dx*=-1;
+        break;
+      case 'follow':
+        let diffX = x - enemy.x, diffY = y - enemy.y;
+        let dist = Math.sqrt(diffX*diffX + diffY*diffY);
+        enemy.x += diffX/dist * 1.5; enemy.y += diffY/dist * 1.5;
+        break;
+      case 'jump':
+        enemy.jumpTimer--;
+        if(enemy.jumpTimer<=0){ enemy.x = Math.random()*(window.innerWidth-40); enemy.y = Math.random()*(window.innerHeight-40); enemy.jumpTimer = 100 + Math.random()*100; }
+        break;
+    }
     enemy.el.style.left = enemy.x+'px';
     enemy.el.style.top = enemy.y+'px';
 
-    if(checkCollision({x,y}, enemy) && Date.now()-lastHit > hitCooldown){
+    if(checkCollision({x:x,y:y,width:20,height:20}, {x:enemy.x,y:enemy.y,width:40,height:40}) && Date.now()-lastHit>hitCooldown){
       lastHit = Date.now();
-      health--;
-      if(health < 0) health = 0;
-      updateHealthBar();
-
-      if(health <= 0) return;
-
-      // push-back
-      if(x < enemy.x) x -= 20; else x += 20;
-      if(y < enemy.y) y -= 20; else y += 20;
-      player.style.left = x+'px';
-      player.style.top = y+'px';
+      health--; if(health<0) health=0; updateHealthBar();
+      if(health<=0) return;
+      if(x<enemy.x) x-=20; else x+=20;
+      if(y<enemy.y) y-=20; else y+=20;
+      player.style.left = x+'px'; player.style.top = y+'px';
     }
   });
 
-  // Update stamina bar
-  staminaBar.style.width = (stamina/100*200)+'px';
+  // Items collision
+  items.forEach((item,i)=>{
+    if(checkCollision({x:x,y:y,width:20,height:20}, {x:parseInt(item.el.style.left), y:parseInt(item.el.style.top), width:20, height:20})){
+      if(item.type==='coin'){ score+=10; updateScore(); }
+      else if(item.type==='healthPack'){ health=Math.min(maxHealth, health+2); updateHealthBar(); }
+      else if(item.type==='sprintPack'){ stamina=Math.min(100, stamina+50); updateStaminaBar(); }
+      gameArea.removeChild(item.el);
+      items.splice(i,1);
+    }
+  });
 
+  updateStaminaBar();
   requestAnimationFrame(gameLoop);
 }
 
 updateHealthBar();
+updateStaminaBar();
+updateScore();
 gameLoop();
 </script>
 </body>
