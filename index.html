@@ -1,33 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
 <meta charset="utf-8">
-<title>Ultimate 2D Game</title>
+<title>Overlevingsgame</title>
 <style>
-  #gameArea { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #6b0909, #000); overflow: hidden; }
-  body { margin:0; overflow:hidden; background:#222; }
-  #player { position:absolute; width:20px; height:20px; background:rgb(81, 255, 0); left:280px; top:180px; }
-  .enemy, .healthPack, .staminaPack, .coin { position:absolute; width:40px; height:40px; border-radius:5px; }
-  .enemy { background:red; }
-  .healthPack { background:green; }
-  .staminaPack { background:lime; }
-  .coin { background:gold; border-radius:50%; }
-  #score, #timer { position:fixed; font-size:20px; color:white; }
-  #score { top:10px; left:10px; }
-  #timer { top:40px; left:10px; }
-  #healthContainer, #staminaContainer {
-    position: fixed; top:10px; right:10px; width: 200px; height: 20px; border:2px solid #800; background:#400;
-  }
-  #healthbar, #staminaBar { width:100%; height:100%; }
-  #healthbar { background:red; }
-  #staminaBar { background:lime; }
-  #gameOver { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; color:red; display:none; text-align:center; }
+body {
+  margin:0;
+  overflow:hidden;
+  background:#000;
+  color:white;
+  font-family:Arial, sans-serif;
+}
+#gameArea {
+  position:relative;
+  width:100vw;
+  height:100vh;
+  background:radial-gradient(circle, #320000, #000);
+  overflow:hidden;
+}
+#player {
+  position:absolute;
+  width:20px;
+  height:20px;
+  background:#4cff00;
+  border-radius:4px;
+}
+.enemy {
+  position:absolute;
+  width:40px;
+  height:40px;
+  background:red;
+  border-radius:5px;
+}
+.item {
+  position:absolute;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+}
+#score, #timer {
+  position:fixed;
+  top:10px;
+  font-size:20px;
+}
+#score { left:10px; }
+#timer { left:120px; }
+#healthContainer, #staminaContainer {
+  position:fixed;
+  right:10px;
+  height:15px;
+  border:1px solid #555;
+  background:#333;
+  width:200px;
+}
+#healthContainer { top:10px; }
+#staminaContainer { top:35px; }
+#healthbar, #staminaBar {
+  height:100%;
+}
+#healthbar { background:#f00; width:200px; }
+#staminaBar { background:#0f0; width:200px; }
+#gameOver {
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  font-size:50px;
+  color:red;
+  display:none;
+  text-align:center;
+}
 </style>
 </head>
 <body>
-
 <div id="gameArea">
-  <div id="player"></div>
+  <div id="player" style="left:280px; top:180px;"></div>
   <div id="score">Score: 0</div>
   <div id="timer">Time: 30</div>
   <div id="healthContainer"><div id="healthbar"></div></div>
@@ -40,142 +87,185 @@ const gameArea = document.getElementById('gameArea');
 const player = document.getElementById('player');
 const healthbar = document.getElementById('healthbar');
 const staminaBar = document.getElementById('staminaBar');
+const gameOverDiv = document.getElementById('gameOver');
 const scoreDiv = document.getElementById('score');
 const timerDiv = document.getElementById('timer');
-const gameOverDiv = document.getElementById('gameOver');
 
 let x = 280, y = 180, speed = 5;
 let maxHealth = 5, health = maxHealth;
 let stamina = 100;
 let score = 0;
-let lastHit = 0, hitCooldown = 500;
-let keys = {};
 let timer = 30;
-const spawnEnemiesPerTimer = 3;
+let lastHit = 0;
+const hitCooldown = 500;
+const keys = {};
+const enemies = [];
+const items = [];
 
-// Event listeners
 document.addEventListener('keydown', e => keys[e.key] = true);
 document.addEventListener('keyup', e => keys[e.key] = false);
 
-// Enemy object array
-const enemyObjects = [];
-for(let i=0;i<5;i++) spawnEnemy(); // start 5 enemies
-
-function spawnEnemy(){
-  const enemyDiv = document.createElement('div');
-  enemyDiv.classList.add('enemy');
-  enemyDiv.style.left = Math.random()*(window.innerWidth-40)+'px';
-  enemyDiv.style.top = Math.random()*(window.innerHeight-40)+'px';
-  gameArea.appendChild(enemyDiv);
-  enemyObjects.push({
-    el: enemyDiv,
-    x: parseInt(enemyDiv.style.left),
-    y: parseInt(enemyDiv.style.top),
-    dx: Math.random()*3+1,
-    dy: Math.random()*3+1,
-    type: Math.floor(Math.random()*3),
-    angle: Math.random()*Math.PI*2
-  });
+// ⛔️ Botsing check
+function checkCollision(a,b,wA=20,hA=20,wB=40,hB=40){
+  return !(a.x+wA<b.x || a.x>b.x+wB || a.y+hA<b.y || a.y>b.y+hB);
 }
 
-// Items
-const items = [];
-function spawnItem(type){
-  const div = document.createElement('div');
-  div.classList.add(type);
-  div.style.left = Math.random()*(window.innerWidth-40)+'px';
-  div.style.top = Math.random()*(window.innerHeight-40)+'px';
-  gameArea.appendChild(div);
-  return { el: div, type: type };
+// ❤️ Health en stamina updaten
+function updateBars(){
+  healthbar.style.width = (health/maxHealth*200)+'px';
+  staminaBar.style.width = (stamina/100*200)+'px';
 }
 
-// Collision check
-function checkCollision(a,b){ return !(a.x+20<b.x || a.x>b.x+40 || a.y+20<b.y || a.y>b.y+40); }
-function updateHealthBar(){ healthbar.style.width = (health/maxHealth*200)+'px'; }
-function updateStaminaBar(){ staminaBar.style.width = (stamina/100*200)+'px'; }
-
-// Timer interval
-const timerInterval = setInterval(()=>{
-  if(health <= 0){
-    clearInterval(timerInterval);
-    return;
-  }
-
-  if(timer > 0){
-    timer--;
-    timerDiv.textContent = 'Time: ' + timer;
-  } else {
-    for(let i=0;i<spawnEnemiesPerTimer;i++) spawnEnemy();
-    timer = 30; // reset
-    timerDiv.textContent = 'Time: ' + timer;
-  }
-}, 1000);
-
-// Game loop
-function gameLoop(){
-  if(health <= 0){
-    gameOverDiv.style.display='block';
-    return;
-  }
-
-  // Speler beweging
+// 🧍 Speler bewegen
+function movePlayer(){
   let s = speed;
-  if(keys['Shift'] && stamina>0){ s=speed*2; stamina-=0.5; if(stamina<0) stamina=0; }
-  else if(!keys['Shift'] && stamina<100){ stamina+=0.2; if(stamina>100) stamina=100; }
+  if(keys['Shift'] && stamina > 0){
+    s = speed*2;
+    stamina -= 0.7;
+    if(stamina < 0) stamina = 0;
+  } else if(!keys['Shift'] && stamina < 100){
+    stamina += 0.3;
+    if(stamina > 100) stamina = 100;
+  }
 
-  if(keys['ArrowUp']) y-=s;
-  if(keys['ArrowDown']) y+=s;
-  if(keys['ArrowLeft']) x-=s;
-  if(keys['ArrowRight']) x+=s;
+  if(keys['ArrowUp']) y -= s;
+  if(keys['ArrowDown']) y += s;
+  if(keys['ArrowLeft']) x -= s;
+  if(keys['ArrowRight']) x += s;
 
   x = Math.max(0, Math.min(window.innerWidth-20, x));
   y = Math.max(0, Math.min(window.innerHeight-20, y));
+
   player.style.left = x+'px';
   player.style.top = y+'px';
+}
 
-  // Enemy beweging
-  enemyObjects.forEach(enemy=>{
-    if(enemy.type==0){ enemy.x+=enemy.dx; enemy.y+=enemy.dy; if(enemy.x<0||enemy.x>window.innerWidth-40) enemy.dx*=-1; if(enemy.y<0||enemy.y>window.innerHeight-40) enemy.dy*=-1; }
-    else if(enemy.type==1){ enemy.angle += 0.05; enemy.x += Math.cos(enemy.angle)*2; enemy.y += Math.sin(enemy.angle)*2; }
-    else if(enemy.type==2){ enemy.x += enemy.dx; enemy.y += Math.sin(enemy.angle)*5; enemy.angle += 0.1; if(enemy.x<0||enemy.x>window.innerWidth-40) enemy.dx*=-1; }
-    enemy.el.style.left = enemy.x+'px';
-    enemy.el.style.top = enemy.y+'px';
+// 👾 Nieuwe enemy spawnen
+function spawnEnemy(){
+  const div = document.createElement('div');
+  div.classList.add('enemy');
+  gameArea.appendChild(div);
 
-    if(checkCollision({x,y}, enemy) && Date.now()-lastHit>hitCooldown){
+  const moveType = Math.floor(Math.random()*4); // 0=stuiter,1=zigzag,2=cirkel,3=random
+  enemies.push({
+    el:div,
+    x:Math.random()*(window.innerWidth-40),
+    y:Math.random()*(window.innerHeight-40),
+    dx:(Math.random()<0.5?-1:1)*2,
+    dy:(Math.random()<0.5?-1:1)*2,
+    moveType:moveType,
+    angle:0
+  });
+}
+
+// 🍀 Item spawnen
+function spawnItem(type){
+  const div = document.createElement('div');
+  div.classList.add('item');
+  if(type==='health') div.style.background='red';
+  if(type==='stamina') div.style.background='lime';
+  if(type==='coin') div.style.background='gold';
+  div.dataset.type = type;
+  div.style.left = Math.random()*(window.innerWidth-20)+'px';
+  div.style.top = Math.random()*(window.innerHeight-20)+'px';
+  gameArea.appendChild(div);
+  items.push({el:div, x:parseInt(div.style.left), y:parseInt(div.style.top), type});
+}
+
+// 🌍 Enemy gedrag
+function moveEnemies(){
+  enemies.forEach(e=>{
+    switch(e.moveType){
+      case 0: // stuiteren
+        e.x+=e.dx; e.y+=e.dy;
+        if(e.x<0||e.x>window.innerWidth-40) e.dx*=-1;
+        if(e.y<0||e.y>window.innerHeight-40) e.dy*=-1;
+        break;
+      case 1: // zigzag
+        e.x+=e.dx;
+        e.y+=Math.sin(Date.now()/200)*3;
+        if(e.x<0||e.x>window.innerWidth-40) e.dx*=-1;
+        break;
+      case 2: // cirkel
+        e.angle+=0.05;
+        e.x+=Math.cos(e.angle)*2;
+        e.y+=Math.sin(e.angle)*2;
+        break;
+      case 3: // random
+        e.x+=Math.random()*4-2;
+        e.y+=Math.random()*4-2;
+        break;
+    }
+
+    e.el.style.left=e.x+'px';
+    e.el.style.top=e.y+'px';
+
+    // botsing speler-enemy
+    if(checkCollision({x,y}, e) && Date.now()-lastHit>hitCooldown){
       lastHit=Date.now();
       health--;
-      updateHealthBar();
-      if(health<=0) return;
-      if(x<enemy.x) x-=20; else x+=20;
-      if(y<enemy.y) y-=20; else y+=20;
-      player.style.left = x+'px';
-      player.style.top = y+'px';
+      if(health<0) health=0;
+      updateBars();
+      if(health<=0) return gameOver();
     }
   });
+}
 
-  // Spawnen van health/stamina packs als laag
-  if(health<=2 && !items.find(i=>i.type=='healthPack')) items.push(spawnItem('healthPack'));
-  if(stamina<=20 && !items.find(i=>i.type=='staminaPack')) items.push(spawnItem('staminaPack'));
-  if(Math.random()<0.001) items.push(spawnItem('coin'));
-
-  // Check pickup
+// 🎁 Items checken
+function checkItems(){
   items.forEach((item,i)=>{
-    if(checkCollision({x,y}, {x:parseInt(item.el.style.left), y:parseInt(item.el.style.top)})){
-      if(item.type=='healthPack'){ health++; if(health>maxHealth) health=maxHealth; updateHealthBar(); }
-      if(item.type=='staminaPack'){ stamina+=30; if(stamina>100) stamina=100; updateStaminaBar(); }
-      if(item.type=='coin'){ score+=10; scoreDiv.textContent = 'Score: '+score; }
+    if(checkCollision({x,y}, item,20,20,20,20)){
+      if(item.type==='health' && health<maxHealth) health++;
+      if(item.type==='stamina') stamina=Math.min(100,stamina+50);
+      if(item.type==='coin') score+=10;
+      updateBars();
+      scoreDiv.textContent='Score: '+score;
       gameArea.removeChild(item.el);
       items.splice(i,1);
     }
   });
+}
 
-  updateStaminaBar();
+// 💀 Game over
+function gameOver(){
+  gameOverDiv.style.display='block';
+  cancelAnimationFrame(loop);
+  clearInterval(timerInterval);
+}
+
+// ⏰ Timer
+const timerInterval = setInterval(()=>{
+  if(health<=0) return;
+  timer--;
+  timerDiv.textContent='Time: '+timer;
+  if(timer<=0){
+    for(let i=0;i<3;i++) spawnEnemy();
+    timer=30;
+  }
+},1000);
+
+// 🎮 Startgame
+for(let i=0;i<5;i++) spawnEnemy();
+spawnItem('coin');
+
+// 🔁 Hoofdlus
+function gameLoop(){
+  if(health<=0) return;
+  movePlayer();
+  moveEnemies();
+  checkItems();
+
+  // Spawn enkel 1 health of stamina pack als nodig
+  if(health<=2 && !items.some(i=>i.type==='health')) spawnItem('health');
+  if(stamina<=30 && !items.some(i=>i.type==='stamina')) spawnItem('stamina');
+  if(Math.random()<0.002) spawnItem('coin'); // af en toe coin
+
+  updateBars();
   requestAnimationFrame(gameLoop);
 }
 
-updateHealthBar();
-updateStaminaBar();
-gameLoop();
+updateBars();
+let loop = requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
