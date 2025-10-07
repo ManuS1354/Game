@@ -2,79 +2,89 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8">
-<title>Overlevingsgame</title>
+<title>Overlevingsgame Deluxe</title>
 <style>
-body {
-  margin:0;
-  overflow:hidden;
-  background:#000;
-  color:white;
-  font-family:Arial, sans-serif;
-}
-#gameArea {
-  position:relative;
-  width:100vw;
-  height:100vh;
-  background:radial-gradient(circle, #320000, #000);
-  overflow:hidden;
-}
-#player {
-  position:absolute;
-  width:20px;
-  height:20px;
-  background:#4cff00;
-  border-radius:4px;
-}
-.enemy {
-  position:absolute;
-  width:40px;
-  height:40px;
-  background:red;
-  border-radius:5px;
-}
-.item {
-  position:absolute;
-  width:20px;
-  height:20px;
-  border-radius:50%;
-}
-#score, #timer {
-  position:fixed;
-  top:10px;
-  font-size:20px;
-}
-#score { left:10px; }
-#timer { left:120px; }
-#healthContainer, #staminaContainer {
-  position:fixed;
-  right:10px;
-  height:15px;
-  border:1px solid #555;
-  background:#333;
-  width:200px;
-}
-#healthContainer { top:10px; }
-#staminaContainer { top:35px; }
-#healthbar, #staminaBar {
-  height:100%;
-}
-#healthbar { background:#f00; width:200px; }
-#staminaBar { background:#0f0; width:200px; }
-#gameOver {
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  font-size:50px;
-  color:red;
-  display:none;
-  text-align:center;
-}
+body {margin:0;overflow:hidden;font-family:'Segoe UI',sans-serif;background:radial-gradient(circle,#000010,#000);color:white;}
+.screen {position:fixed;top:0;left:0;width:100%;height:100%;display:flex;justify-content:center;align-items:center;flex-direction:column;background:rgba(0,0,20,0.95);transition:opacity .8s ease;}
+.hidden{display:none;}
+input{padding:10px;font-size:16px;margin:5px;border-radius:6px;border:none;}
+button{background:linear-gradient(45deg,#00aaff,#0066ff);border:none;color:white;padding:12px 30px;font-size:18px;margin:10px;border-radius:8px;cursor:pointer;transition:transform .2s,box-shadow .2s;}
+button:hover{transform:scale(1.05);box-shadow:0 0 15px #00aaff;}
+#gameArea{position:relative;width:100vw;height:100vh;background:radial-gradient(circle,#320000,#000);overflow:hidden;}
+#player{position:absolute;width:20px;height:20px;background:#4cff00;border-radius:4px;}
+.enemy{position:absolute;width:40px;height:40px;background:red;border-radius:5px;}
+.item{position:absolute;width:20px;height:20px;border-radius:50%;}
+#score,#timer{position:fixed;top:10px;font-size:20px;}
+#score{left:10px;}
+#timer{left:120px;}
+#healthContainer,#staminaContainer{position:fixed;right:10px;height:15px;border:1px solid #555;background:#333;width:200px;}
+#healthContainer{top:10px;}
+#staminaContainer{top:35px;}
+#healthbar,#staminaBar{height:100%;}
+#healthbar{background:#f00;width:200px;}
+#staminaBar{background:#0f0;width:200px;}
+#gameOver{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:50px;color:red;display:none;text-align:center;}
 </style>
 </head>
 <body>
-<div id="gameArea">
-  <div id="player" style="left:280px; top:180px;"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen">
+  <h1>Login</h1>
+  <input id="username" placeholder="Gebruikersnaam"><br>
+  <input id="password" type="password" placeholder="Wachtwoord"><br>
+  <button onclick="login()">Inloggen</button>
+  <button onclick="showRegister()">Nieuw account</button>
+  <button onclick="showForgot()">Wachtwoord vergeten?</button>
+</div>
+
+<!-- REGISTER -->
+<div id="registerScreen" class="screen hidden">
+  <h1>Nieuw account</h1>
+  <input id="newUsername" placeholder="Nieuwe gebruikersnaam"><br>
+  <input id="newPassword" type="password" placeholder="Nieuw wachtwoord"><br>
+  <input id="secQuestion" placeholder="Beveiligingsvraag (bv. je huisdier?)"><br>
+  <input id="secAnswer" placeholder="Antwoord op vraag"><br>
+  <button onclick="register()">Aanmaken</button>
+  <button onclick="backToLogin()">Terug</button>
+</div>
+
+<!-- WACHTWOORD VERGETEN -->
+<div id="forgotScreen" class="screen hidden">
+  <h1>Wachtwoord vergeten</h1>
+  <input id="forgotUser" placeholder="Gebruikersnaam"><br>
+  <div id="securityStep" class="hidden">
+    <p id="secQuestionText"></p>
+    <input id="forgotAnswer" placeholder="Antwoord"><br>
+    <input id="newPass" type="password" placeholder="Nieuw wachtwoord"><br>
+    <button onclick="resetPassword()">Wachtwoord resetten</button>
+  </div>
+  <button id="nextForgotBtn" onclick="checkUser()">Volgende</button>
+  <button onclick="backToLogin()">Annuleren</button>
+</div>
+
+<!-- MENU -->
+<div id="menuScreen" class="screen hidden">
+  <h1>Welkom bij Overlevingsgame</h1>
+  <button onclick="showDifficulty()">Start Spel</button>
+  <button onclick="showShop()">Winkel</button>
+  <button onclick="logout()">Uitloggen</button>
+</div>
+
+<!-- MOEILIJKHEID -->
+<div id="difficultyScreen" class="screen hidden">
+  <h1>Kies Moeilijkheid</h1>
+  <button onclick="startGame('makkelijk')">Makkelijk</button>
+  <button onclick="startGame('normaal')">Normaal</button>
+  <button onclick="startGame('moeilijk')">Moeilijk</button>
+</div>
+
+<!-- WINKEL -->
+<div id="shopScreen" class="screen hidden"></div>
+
+<!-- GAME -->
+<div id="gameArea" class="hidden">
+  <div id="player"></div>
   <div id="score">Score: 0</div>
   <div id="timer">Time: 30</div>
   <div id="healthContainer"><div id="healthbar"></div></div>
@@ -83,189 +93,210 @@ body {
 </div>
 
 <script>
+let users = JSON.parse(localStorage.getItem('users') || '{}');
+let currentUser = null;
+for(let u in users) if(!users[u].coins) users[u].coins=0;
+
+let avatarColor='green', avatarShape='square', difficulty='normaal';
+let x,y,health,stamina,score,timer,enemies=[],items=[],loop,timerInterval;
+const keys={};
+
+function hash(str){let h=0;for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}return h.toString();}
+
 const gameArea = document.getElementById('gameArea');
 const player = document.getElementById('player');
 const healthbar = document.getElementById('healthbar');
 const staminaBar = document.getElementById('staminaBar');
-const gameOverDiv = document.getElementById('gameOver');
 const scoreDiv = document.getElementById('score');
 const timerDiv = document.getElementById('timer');
+const gameOverDiv = document.getElementById('gameOver');
 
-let x = 280, y = 180, speed = 5;
-let maxHealth = 5, health = maxHealth;
-let stamina = 100;
-let score = 0;
-let timer = 30;
-let lastHit = 0;
-const hitCooldown = 500;
-const keys = {};
-const enemies = [];
-const items = [];
+document.addEventListener('keydown', e=>keys[e.key]=true);
+document.addEventListener('keyup', e=>keys[e.key]=false);
 
-document.addEventListener('keydown', e => keys[e.key] = true);
-document.addEventListener('keyup', e => keys[e.key] = false);
-
-// ⛔️ Botsing check
-function checkCollision(a,b,wA=20,hA=20,wB=40,hB=40){
-  return !(a.x+wA<b.x || a.x>b.x+wB || a.y+hA<b.y || a.y>b.y+hB);
+function login(){
+  const u=document.getElementById('username').value.trim();
+  const p=document.getElementById('password').value.trim();
+  if(users[u] && users[u].password === hash(p)){
+    currentUser=u; if(!users[u].coins) users[u].coins=0;
+    localStorage.setItem('users',JSON.stringify(users));
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('menuScreen').classList.remove('hidden');
+  } else alert("Onjuiste gebruikersnaam of wachtwoord!");
 }
 
-// ❤️ Health en stamina updaten
-function updateBars(){
-  healthbar.style.width = (health/maxHealth*200)+'px';
-  staminaBar.style.width = (stamina/100*200)+'px';
+function showRegister(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('registerScreen').classList.remove('hidden');}
+function showForgot(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('forgotScreen').classList.remove('hidden');}
+function checkUser(){
+  const u=document.getElementById('forgotUser').value.trim();
+  if(users[u]){
+    document.getElementById('secQuestionText').textContent="Vraag: "+users[u].question;
+    document.getElementById('securityStep').classList.remove('hidden');
+    document.getElementById('nextForgotBtn').classList.add('hidden');
+  } else alert("Gebruiker niet gevonden!");
+}
+function resetPassword(){
+  const u=document.getElementById('forgotUser').value.trim();
+  const a=document.getElementById('forgotAnswer').value.trim();
+  const n=document.getElementById('newPass').value.trim();
+  if(users[u] && users[u].answer === a){
+    users[u].password = hash(n);
+    localStorage.setItem('users',JSON.stringify(users));
+    alert("Wachtwoord succesvol gewijzigd!");
+    backToLogin();
+  } else alert("Antwoord is onjuist!");
+}
+function register(){
+  const u=document.getElementById('newUsername').value.trim();
+  const p=document.getElementById('newPassword').value.trim();
+  const q=document.getElementById('secQuestion').value.trim();
+  const a=document.getElementById('secAnswer').value.trim();
+  if(!u||!p||!q||!a) return alert("Vul alles in!");
+  if(users[u]) return alert("Gebruiker bestaat al!");
+  users[u]={password:hash(p),question:q,answer:a,coins:0};
+  localStorage.setItem('users',JSON.stringify(users));
+  alert("Account aangemaakt!");
+  backToLogin();
+}
+function backToLogin(){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));document.getElementById('loginScreen').classList.remove('hidden');}
+function logout(){currentUser=null;document.getElementById('menuScreen').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');}
+
+function showDifficulty(){document.getElementById('menuScreen').classList.add('hidden');document.getElementById('difficultyScreen').classList.remove('hidden');}
+
+// --------- GAME ----------
+function startGame(level){
+  if(!currentUser) return alert("Je moet eerst inloggen!");
+  difficulty = level;
+  document.getElementById('difficultyScreen').classList.add('hidden');
+  gameArea.classList.remove('hidden');
+  initGame();
 }
 
-// 🧍 Speler bewegen
-function movePlayer(){
-  let s = speed;
-  if(keys['Shift'] && stamina > 0){
-    s = speed*2;
-    stamina -= 0.7;
-    if(stamina < 0) stamina = 0;
-  } else if(!keys['Shift'] && stamina < 100){
-    stamina += 0.3;
-    if(stamina > 100) stamina = 100;
-  }
-
-  if(keys['ArrowUp']) y -= s;
-  if(keys['ArrowDown']) y += s;
-  if(keys['ArrowLeft']) x -= s;
-  if(keys['ArrowRight']) x += s;
-
-  x = Math.max(0, Math.min(window.innerWidth-20, x));
-  y = Math.max(0, Math.min(window.innerHeight-20, y));
-
-  player.style.left = x+'px';
-  player.style.top = y+'px';
-}
-
-// 👾 Nieuwe enemy spawnen
-function spawnEnemy(){
-  const div = document.createElement('div');
-  div.classList.add('enemy');
-  gameArea.appendChild(div);
-
-  const moveType = Math.floor(Math.random()*4); // 0=stuiter,1=zigzag,2=cirkel,3=random
-  enemies.push({
-    el:div,
-    x:Math.random()*(window.innerWidth-40),
-    y:Math.random()*(window.innerHeight-40),
-    dx:(Math.random()<0.5?-1:1)*2,
-    dy:(Math.random()<0.5?-1:1)*2,
-    moveType:moveType,
-    angle:0
-  });
-}
-
-// 🍀 Item spawnen
-function spawnItem(type){
-  const div = document.createElement('div');
-  div.classList.add('item');
-  if(type==='health') div.style.background='red';
-  if(type==='stamina') div.style.background='lime';
-  if(type==='coin') div.style.background='gold';
-  div.dataset.type = type;
-  div.style.left = Math.random()*(window.innerWidth-20)+'px';
-  div.style.top = Math.random()*(window.innerHeight-20)+'px';
-  gameArea.appendChild(div);
-  items.push({el:div, x:parseInt(div.style.left), y:parseInt(div.style.top), type});
-}
-
-// 🌍 Enemy gedrag
-function moveEnemies(){
-  enemies.forEach(e=>{
-    switch(e.moveType){
-      case 0: // stuiteren
-        e.x+=e.dx; e.y+=e.dy;
-        if(e.x<0||e.x>window.innerWidth-40) e.dx*=-1;
-        if(e.y<0||e.y>window.innerHeight-40) e.dy*=-1;
-        break;
-      case 1: // zigzag
-        e.x+=e.dx;
-        e.y+=Math.sin(Date.now()/200)*3;
-        if(e.x<0||e.x>window.innerWidth-40) e.dx*=-1;
-        break;
-      case 2: // cirkel
-        e.angle+=0.05;
-        e.x+=Math.cos(e.angle)*2;
-        e.y+=Math.sin(e.angle)*2;
-        break;
-      case 3: // random
-        e.x+=Math.random()*4-2;
-        e.y+=Math.random()*4-2;
-        break;
-    }
-
-    e.el.style.left=e.x+'px';
-    e.el.style.top=e.y+'px';
-
-    // botsing speler-enemy
-    if(checkCollision({x,y}, e) && Date.now()-lastHit>hitCooldown){
-      lastHit=Date.now();
-      health--;
-      if(health<0) health=0;
-      updateBars();
-      if(health<=0) return gameOver();
-    }
-  });
-}
-
-// 🎁 Items checken
-function checkItems(){
-  items.forEach((item,i)=>{
-    if(checkCollision({x,y}, item,20,20,20,20)){
-      if(item.type==='health' && health<maxHealth) health++;
-      if(item.type==='stamina') stamina=Math.min(100,stamina+50);
-      if(item.type==='coin') score+=10;
-      updateBars();
-      scoreDiv.textContent='Score: '+score;
-      gameArea.removeChild(item.el);
-      items.splice(i,1);
-    }
-  });
-}
-
-// 💀 Game over
-function gameOver(){
-  gameOverDiv.style.display='block';
-  cancelAnimationFrame(loop);
+function initGame(){
+  x=280; y=180; health=5; stamina=100; score=0; timer=30;
+  enemies=[]; items=[];
+  document.querySelectorAll('.enemy,.item').forEach(el=>el.remove());
+  gameOverDiv.style.display='none';
+  updateBars();
+  for(let i=0;i<5;i++) spawnEnemy();
+  spawnItem('coin');
   clearInterval(timerInterval);
+  timerInterval=setInterval(timerTick,1000);
+  cancelAnimationFrame(loop);
+  loop=requestAnimationFrame(gameLoop);
 }
 
-// ⏰ Timer
-const timerInterval = setInterval(()=>{
-  if(health<=0) return;
-  timer--;
-  timerDiv.textContent='Time: '+timer;
+function timerTick(){
+  timer--; timerDiv.textContent='Time: '+timer;
   if(timer<=0){
-    for(let i=0;i<3;i++) spawnEnemy();
+    let n = (difficulty==='makkelijk'?2:(difficulty==='normaal'?3:5));
+    let speed = (difficulty==='makkelijk'?1.5:(difficulty==='normaal'?2.5:4));
+    for(let i=0;i<n;i++) spawnEnemy(speed);
     timer=30;
   }
-},1000);
+}
 
-// 🎮 Startgame
-for(let i=0;i<5;i++) spawnEnemy();
-spawnItem('coin');
-
-// 🔁 Hoofdlus
 function gameLoop(){
   if(health<=0) return;
   movePlayer();
   moveEnemies();
   checkItems();
-
-  // Spawn enkel 1 health of stamina pack als nodig
-  if(health<=2 && !items.some(i=>i.type==='health')) spawnItem('health');
-  if(stamina<=30 && !items.some(i=>i.type==='stamina')) spawnItem('stamina');
-  if(Math.random()<0.002) spawnItem('coin'); // af en toe coin
-
-  updateBars();
-  requestAnimationFrame(gameLoop);
+  loop=requestAnimationFrame(gameLoop);
 }
 
-updateBars();
-let loop = requestAnimationFrame(gameLoop);
+function movePlayer(){
+  let s=5; if(keys['Shift']&&stamina>0){s=10;stamina-=0.7;}else if(stamina<100)stamina+=0.3;
+  if(keys['ArrowUp'])y-=s; if(keys['ArrowDown'])y+=s;
+  if(keys['ArrowLeft'])x-=s; if(keys['ArrowRight'])x+=s;
+  x=Math.max(0,Math.min(window.innerWidth-20,x));
+  y=Math.max(0,Math.min(window.innerHeight-20,y));
+  player.style.left=x+'px'; player.style.top=y+'px';
+  updateBars();
+}
+
+function spawnEnemy(speed=2){
+  const div=document.createElement('div'); div.classList.add('enemy'); gameArea.appendChild(div);
+  enemies.push({el:div, x:Math.random()*(window.innerWidth-40), y:Math.random()*(window.innerHeight-40), dx:(Math.random()<0.5?-1:1)*speed, dy:(Math.random()<0.5?-1:1)*speed});
+}
+function moveEnemies(){
+  enemies.forEach(e=>{
+    e.x+=e.dx; e.y+=e.dy;
+    if(e.x<0||e.x>window.innerWidth-40)e.dx*=-1;
+    if(e.y<0||e.y>window.innerHeight-40)e.dy*=-1;
+    e.el.style.left=e.x+'px'; e.el.style.top=e.y+'px';
+    if(checkCollision({x,y},e)){ health--; if(health<=0) gameOver(); }
+  });
+}
+
+function spawnItem(type){
+  const div=document.createElement('div'); div.classList.add('item');
+  if(type==='health') div.style.background='red';
+  if(type==='stamina') div.style.background='lime';
+  if(type==='coin') div.style.background='gold';
+  div.dataset.type=type;
+  div.style.left=Math.random()*(window.innerWidth-20)+'px';
+  div.style.top=Math.random()*(window.innerHeight-20)+'px';
+  gameArea.appendChild(div);
+  items.push({el:div,x:parseInt(div.style.left),y:parseInt(div.style.top),type});
+}
+
+function checkItems(){
+  items.forEach((item,i)=>{
+    if(checkCollision({x,y},item,20,20,20,20)){
+      if(item.type==='health'&&health<5) health++;
+      if(item.type==='stamina') stamina=Math.min(100,stamina+50);
+      if(item.type==='coin'){ score+=10; if(currentUser){users[currentUser].coins+=10; localStorage.setItem('users',JSON.stringify(users));} }
+      updateBars();
+      gameArea.removeChild(item.el); items.splice(i,1);
+    }
+  });
+}
+
+function checkCollision(a,b,wA=20,hA=20,wB=40,hB=40){ return !(a.x+wA<b.x||a.x>b.x+wB||a.y+hA<b.y||a.y>b.y+hB); }
+
+function updateBars(){healthbar.style.width=(health/5*200)+'px'; staminaBar.style.width=(stamina/100*200)+'px'; scoreDiv.textContent='Score: '+score;}
+
+function gameOver(){gameOverDiv.style.display='block'; cancelAnimationFrame(loop); clearInterval(timerInterval);
+setTimeout(()=>{gameOverDiv.style.display='none'; gameArea.classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden');},3000);}
+
+// --------- SHOP ---------
+function showShop(){
+  if(!currentUser) return alert("Je moet eerst inloggen!");
+  document.getElementById('menuScreen').classList.add('hidden');
+  const shop = document.getElementById('shopScreen');
+  shop.classList.remove('hidden');
+  shop.innerHTML = `<h1>Winkel</h1><p>Munten: ${users[currentUser].coins}</p>`;
+  
+  const shapes = [{name:"Vierkant",cost:20,shape:"square"},{name:"Cirkel",cost:30,shape:"circle"},{name:"Driehoek",cost:50,shape:"triangle"}];
+  shapes.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.textContent=`${s.name} (${s.cost} munten)`;
+    btn.onclick=()=>{
+      if(users[currentUser].coins>=s.cost){ users[currentUser].coins-=s.cost; avatarShape=s.shape; localStorage.setItem('users',JSON.stringify(users)); alert(`${s.name} gekocht!`);}
+      else alert("Niet genoeg munten!");
+      showShop();
+    };
+    shop.appendChild(btn);
+  });
+
+  const colors=["green","blue","yellow","red","purple"];
+  colors.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.textContent=c.charAt(0).toUpperCase()+c.slice(1);
+    btn.style.background=c;
+    btn.onclick=()=>{
+      if(users[currentUser].coins>=10){ users[currentUser].coins-=10; avatarColor=c; localStorage.setItem('users',JSON.stringify(users)); alert(`${c} gekocht!`);}
+      else alert("Niet genoeg munten!");
+      showShop();
+    };
+    shop.appendChild(btn);
+  });
+
+  const backBtn=document.createElement('button');
+  backBtn.textContent="Terug";
+  backBtn.onclick=()=>{shop.classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden');};
+  shop.appendChild(backBtn);
+}
 </script>
 </body>
 </html>
